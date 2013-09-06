@@ -18,9 +18,9 @@ if not Deps.isolate?
       return origResult;
     }`
 
-@EventHorizon = {}
+EventHorizon = {}
 
-_.extend @EventHorizon,
+_.extend EventHorizon,
   listeners: {}
   handlers: {}
   on: (eventName, func) ->
