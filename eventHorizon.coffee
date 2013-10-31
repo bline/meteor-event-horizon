@@ -23,26 +23,30 @@ EventHorizon = {}
 _.extend EventHorizon,
   listeners: {}
   handlers: {}
-  on: (eventName, func) ->
+  on: (eventSpec, func) ->
     self = this
+    {eventName, namespace} = self._parseHandlerEventSpec eventSpec
     if not self.handlers[eventName]
-      self.handlers[eventName] = []
+      self.handlers[eventName] = {}
+    if not self.handlers[eventName][namespace]
+      self.handlers[eventName][namespace] = []
     
-    self.handlers[eventName].push func
+    self.handlers[eventName][namespace].push func
 
   fire: (eventName, eventData) ->
     self = this
-    _.each self.handlers[eventName], (handler) ->
-      handler.call eventData
+    _.each self.handlers[eventName], (handlers, namespace) ->
+      _.each handlers, (handler) ->
+        handler.call eventData
 
-    return !! self.handlers[eventName]?.length
+    return !! _.size self.handlers[eventName]
 
   _ensureListener: (eventName, listener) ->
     self = this
     if not self.listeners[eventName]
       self.listeners[eventName] = []
 
-    self.listeners[eventName].push listener   
+    self.listeners[eventName].push listener
 
   fireOnChange: (eventName, func) ->
     self = this
@@ -74,11 +78,14 @@ _.extend EventHorizon,
     _.invoke self.listeners[eventName], 'stop'
     delete self.listeners[eventName]
 
-  removeHandlers: (eventName) ->
+  removeHandlers: (eventSpec) ->
     self = this
-    delete self.handlers[eventName]
+    {eventName, namespace} = self._parseHandlerEventSpec eventSpec
+    delete self.handlers[eventName][namespace]
+    if not _.size self.handlers[eventName]
+      delete self.handlers[eventName]
 
-  removeEvent: (eventName) ->
-    self = this
-    self.removeListeners eventName
-    self.removeHandlers eventName
+  _parseHandlerEventSpec: (eventSpec) ->
+    [namespace, eventName] = eventSpec.split '.'
+    [namespace, eventName] = ['_', namespace] unless eventName
+    {namespace, eventName}
